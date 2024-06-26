@@ -84,8 +84,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
         },
       ),
 
-      floatingActionButton: Center(
-        heightFactor:null , 
+      floatingActionButton: Center( 
         child:FloatingActionButton(
         // Provide an onPressed callback.
         onPressed: () async {
