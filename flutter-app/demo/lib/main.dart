@@ -1,220 +1,79 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:mime/mime.dart';
-import 'package:http_parser/http_parser.dart';
+import 'package:demo/upload.dart';
+import 'package:demo/default_page.dart';
+import 'package:demo/cam.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+  runApp(MyApp(camera: firstCamera));
 }
 
 class MyApp extends StatelessWidget {
+  final CameraDescription camera;
+  const MyApp({super.key, required this.camera});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: ImagePickerExample(),
+      theme: ThemeData(useMaterial3: true),
+      home: HomePage(camera: camera),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class ImagePickerExample extends StatefulWidget {
+class HomePage extends StatefulWidget {
+  final CameraDescription camera;
+  const HomePage({super.key, required this.camera});
+
   @override
-  _ImagePickerExampleState createState() => _ImagePickerExampleState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _ImagePickerExampleState extends State<ImagePickerExample> {
-  File? _image;
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
-
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-      } else {
-        print('No image selected.');
-      }
-    });
-  }
-
-  Future<void> _uploadImage(File image) async {
-    String uploadUrl = 'http://10.0.2.2:5000/upload'; // Use emulator-specific address
-
-    final mimeTypeData = lookupMimeType(image.path, headerBytes: [0xFF, 0xD8])?.split('/');
-
-    final imageUploadRequest = http.MultipartRequest('POST', Uri.parse(uploadUrl));
-    final file = await http.MultipartFile.fromPath(
-      'image',
-      image.path,
-      contentType: MediaType(mimeTypeData![0], mimeTypeData[1]), // Use MediaType from http_parser
-    );
-
-    imageUploadRequest.files.add(file);
-
-    try {
-      final streamedResponse = await imageUploadRequest.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        print('Image uploaded successfully');
-      } else {
-        print('Image upload failed with status code ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error uploading image: $e');
-    }
-  }
+class _HomePageState extends State<HomePage> {
+  int currentPageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title:const Text('Image Picker Example'),
+        title: const Text("Home Page"),
       ),
-      body:Center(
-        child:_image==null?
-        Padding(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedColor: Colors.black,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            Divider(),
-            ListTile(
-                title: Text('ListTile with FadeTransition'),
-                selectedTileColor: Colors.green,
-                selectedColor: Colors.white,
-                selected: true,
-            ),
-            ],
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: (int index) {
+          setState(() {
+            currentPageIndex = index;
+          });
+        },
+        indicatorColor: Colors.amber,
+        selectedIndex: currentPageIndex,
+        destinations: const <Widget>[
+          NavigationDestination(
+            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
           ),
-        ),
-      )
-      :Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.file(_image!),
-                  ElevatedButton(
-                    onPressed: () => _uploadImage(_image!),
-                    child: Text('Upload Image'),
-                  ),
-                ],
-              ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        shape:const CircularNotchedRectangle(),
-        notchMargin: 6.0,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              IconButton(
-                icon:const Icon(Icons.photo_library),
-                onPressed: () => _pickImage(ImageSource.gallery),
-                tooltip: 'Pick Image from Gallery',
-              ),
-              IconButton(
-                icon:const Icon(Icons.home),
-                onPressed: () => ImagePickerExample(),
-                tooltip: 'Home',
-              ),
-              IconButton(
-                icon:const Icon(Icons.camera_alt),
-                onPressed: () => _pickImage(ImageSource.camera),
-                tooltip: 'Take a Photo',
-              ),
-            ],
+          NavigationDestination(
+            icon: Badge(child: Icon(Icons.image_search)),
+            label: 'Search Gallery',
           ),
-        ),
+          NavigationDestination(
+            icon: Badge(child: Icon(Icons.camera_alt)),
+            label: 'Camera',
+          ),
+        ],
       ),
+      body: <Widget>[
+        DefaultPage(theme: theme),
+        PageUpload(),
+        TakePictureScreen(camera: widget.camera),
+      ][currentPageIndex],
     );
   }
 }
-class Page_upload extends  StatelessWidget{
-  Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title:const Center(
-        child:Text("Upload_Image"),
-      ),
-    ),
-    body:const Center(
-      child:Column(
 
-      ),
-    ),
-  );
-  }
-}
+
